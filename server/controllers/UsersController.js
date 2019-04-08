@@ -546,4 +546,43 @@ class UsersController {
     }
   }
 
+  /**
+   *@description Creates app support
+   *@static
+   *@param  {Object} res - response
+   *@returns {object} - null
+   *@memberof UserController
+   */
+  static async createSupport() {
+    try {
+      const phoneNumber = SUPPORT_LINE;
+      const userObject = {
+        phoneNumber: SUPPORT_LINE,
+        verified: 'true',
+        token: '',
+        bio: 'News, updates and announcements from the makers. You can also log your complain and suggest features to us.',
+        friends: [],
+        imageUrl: {
+          id: 'hala',
+          format: 'png',
+          version: 1547378017,
+          uri: 'https: //res.cloudinary.com/dcdev/image/upload/v1547378017/hala.png',
+        },
+        role: 'admin',
+        username: 'Hala Team',
+        email: 'team@halaapp.com',
+      };
+      const mongoUser = await User.findOne({
+        phoneNumber
+      });
+
+      const esUser = await elastic
+        .retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber);
+
+      if (esUser === undefined) await elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber, userObject, esResponse => esResponse);
+      if (mongoUser === null) await User.create(userObject);
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
 }
