@@ -153,5 +153,72 @@ class ConnectionController {
     }
   }
 
-  
+  /**
+   *@description Adds the found user to connection
+   *@static
+   *@param  {Object} res - response
+   *@param  {object} users - object of sender's and receiver's number
+   *@returns {object} - status code, message/error and adds the user to connection
+   *@memberof connectionController
+   */
+  static async checkUserValidity(res, {
+    senderNumber,
+    receiverNumber
+  }) {
+    let sender, receiver;
+    sender = await elastic
+      .retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, senderNumber.slice(1));
+    if (!sender) {
+      const checkSender = await User.findOne({
+        phoneNumber: senderNumber.slice(1)
+      });
+      if (!checkSender) return res.status(404).json(responses.error(404, 'Sorry this account does not exist'));
+      sender = checkSender;
+      const {
+        verified,
+        friends,
+        token,
+        phoneNumber
+      } = sender;
+      const senderObject = {
+        verified,
+        friends,
+        token,
+        phoneNumber
+      };
+      elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, senderNumber, senderObject, esResponse => esResponse);
+    }
+    receiver = await elastic
+      .retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, receiverNumber.slice(1));
+    if (!receiver) {
+      const checkReceiver = await User.findOne({
+        phoneNumber: receiverNumber.slice(1)
+      });
+      if (!checkReceiver) return res.status(404).json(responses.error(404, 'Recipient does not exist'));
+      receiver = checkReceiver;
+      const {
+        verified,
+        friends,
+        token,
+        phoneNumber
+      } = receiver;
+      const receiverObject = {
+        verified,
+        friends,
+        token,
+        phoneNumber
+      };
+      elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, receiverNumber, receiverObject, esResponse => esResponse);
+    }
+    if (sender.verified === 'pending') {
+      res.status(400).json(responses.error(400, 'Sorry, you need to verify your account first'));
+    }
+    if (receiver.verified === 'pending') {
+      res.status(400).json(responses.error(400, 'Sorry, recipient need to verify account first'));
+    }
+    return {
+      sender,
+      receiver
+    };
+  } 
 }
