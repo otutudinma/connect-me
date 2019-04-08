@@ -480,4 +480,70 @@ class UsersController {
     );
   }
 
+  /**
+   *@description finds a user
+   *@static
+   *@param  {Object} req - request
+   *@param  {object} res - response
+   *@returns {object} - existing user, details
+   *@memberof UserController
+   */
+  static async getAnyUser(req, res) {
+    try {
+      const {
+        phoneNumber
+      } = req.params;
+      const user = await User.findOne({
+        phoneNumber: phoneNumber.slice(1)
+      });
+      if (!user) {
+        return res.status(404).json(
+          responses.error(404, 'sorry, this account does not exist')
+        );
+      }
+
+      const token = req.headers.authorization || req.headers['x-access-token'];
+      const decoded = jwt.decode(token);
+
+      const userNumber = decoded.phoneNumber;
+      const connectedFriend = user.friends.filter(friend => friend === userNumber);
+
+      const {
+        phoneNumber: phone,
+        username,
+        _id,
+        bio,
+        imageUrl,
+        friends,
+        resetCode,
+        banks,
+        role,
+        email,
+        date,
+        verified
+      } = user;
+      const updatedUser = {
+        phone,
+        username,
+        _id,
+        bio,
+        imageUrl,
+        connectedStatus: connectedFriend[0] === userNumber ? true : false,
+        friends,
+        email,
+        resetCode,
+        banks,
+        role,
+        date,
+        verified
+      };
+
+      return res.status(200).json(
+        responses.success(200, 'User found successfully', updatedUser)
+      );
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
+
 }
