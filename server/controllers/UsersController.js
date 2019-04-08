@@ -585,4 +585,55 @@ class UsersController {
       traceLogger(error);
     }
   }
+
+  /**
+  *@description saves a firebase token for a user
+  *@static
+  *@param  {Object} req - request
+  *@param  {object} res - response
+  *@returns {object} - status code, message and all existing users
+  *@memberof UsersController
+  */
+ static async saveFirebaseToken(req, res) {
+    try {
+      const {
+        firebaseToken
+      } = req.body;
+      const jwttoken = req.headers.authorization || req.headers['x-access-token'];
+      const decoded = jwt.decode(jwttoken);
+
+      const {
+        phoneNumber
+      } = decoded;
+      const user = await User.findOne({ phoneNumber });
+      if (!user) {
+        return res.status(404).json(
+          responses.error(404, 'This account doesnt exist')
+        );
+      }
+
+      const updatedUserToken = await User.findOneAndUpdate({ phoneNumber },
+        {
+          $set: {
+            firebaseDeviceToken: firebaseToken
+          }
+        }, {
+          new: true
+        });
+      const {
+        bio,
+        role,
+        verified,
+        resetCode, friends, banks, date, phoneNumber: phone, token, firebasetoken: firebaseDeviceToken
+      } = updatedUserToken;
+      const newUpdatedUser = {
+        bio, role, verified, resetCode, friends, banks, date, phoneNumber: phone, token, firebaseDeviceToken
+      };
+      await elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber, newUpdatedUser, esResponse => esResponse);
+      return res.status(200).json(responses.success(200, 'Token stored suucessfully', updatedUserToken));
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
+
 }
