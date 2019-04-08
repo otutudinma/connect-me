@@ -4,7 +4,12 @@
   "description": "Allowers friends from all over the world chat and also send money to one another",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cross-env NODE_ENV=test nyc --reporter=html mocha --compilers js:babel-register ./server/tests/* --no-deprecation  --timeout 1000000 --exit  && nyc report",
+    "start": "node ./dist/server/app.js",
+    "start:pm2": "./node_modules/pm2/bin/pm2 start pm2-apps.json && DEBUG=log nodemon --watch server --exec babel-node ./server/app.js",
+    "start:dev": "nodemon --exec babel-node ./server/app.js",
+    "pm2:logs": "node ./node_modules/pm2/bin/pm2 logs",
+    "build": "babel server -d dist/server"
   },
   "repository": {
     "type": "git",
