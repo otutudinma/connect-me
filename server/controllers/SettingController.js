@@ -274,5 +274,84 @@ class SettingController {
     }
   }
 
-  
+   /**
+   *@description Save card details of a user
+   *@static
+   *@param  {Object} req - request
+   *@param  {object} res - response
+   *@memberof SettingController
+   */
+  static async removeCardDetails(req, res) {
+    try {
+      const {
+        last4digits
+      } = req.body;
+      const jwttoken = req.headers.authorization || req.headers['x-access-token'];
+      const decoded = jwt.decode(jwttoken);
+
+      const {
+        phoneNumber
+      } = decoded;
+      const wallet = await Wallet.findOne({
+        phoneNumber
+      });
+      if (!wallet) {
+        return res.status(400).json(responses.error(400, 'Unable to find user'));
+      }
+      const { cardTokens } = wallet;
+      const cardExist = cardTokens && cardTokens.find(cardToken => cardToken.last4digits === last4digits);
+      if (!cardExist) {
+        return res.status(404).json(
+          responses.error(404, 'This card does not exist')
+        );
+      }
+      const updatedUser = await Wallet.findOneAndUpdate({
+        phoneNumber
+      }, {
+        $pull: {
+          cardTokens: {
+            last4digits
+          }
+        }
+      }, {
+        new: true
+      });
+      const {
+        isActivated,
+        totalAmount,
+        codeInputCount,
+        passCode,
+        securityAnswer,
+        securityQuestion,
+        codeTimer,
+        email,
+        isLocked,
+        transactionReference,
+        merchantReference
+      } = updatedUser;
+      const walletObject = {
+        isActivated,
+        totalAmount,
+        codeInputCount,
+        isLocked,
+        codeTimer,
+        transactionReference,
+        merchantReference,
+        phoneNumber,
+        cardTokens,
+        email,
+        passCode,
+        securityAnswer,
+        securityQuestion,
+      };
+
+      await elastic.updateData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber, walletObject,
+        esResponse => esResponse);
+      return res.status(200).json(
+        responses.success(200, 'card successfully removed')
+      );
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
 }
