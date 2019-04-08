@@ -401,4 +401,41 @@ class UsersController {
     return updatedProfile;
   }
 
+  /**
+   *@description Resend token to user
+   *@static
+   *@param  {Object} req - request
+   *@param  {object} res - response
+   *@returns {object} - status code, message/error and token
+   *@memberof UsersController
+   */
+  static async resendToken(req, res) {
+    const {
+      phoneNumber
+    } = req.params;
+    try {
+      const admin = await elastic.retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, SUPPORT_LINE);
+
+      const existingUser = await User.findOne({
+        phoneNumber
+      });
+      if (!existingUser) {
+        return res.status(404).json(
+          responses.error(404, 'Phone number does not exist')
+        );
+      }
+      const {
+        token
+      } = await sendOtp(phoneNumber);
+      return res.status(200).json(
+        responses.success(200, 'Token sent successfully', 'token', token)
+      );
+    } catch (error) {
+      traceLogger(error);
+      return res.status(500).json(
+        responses.error(500, 'Server error, failed to resend token')
+      );
+    }
+  }
+
 }
