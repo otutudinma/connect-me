@@ -438,4 +438,46 @@ class UsersController {
     }
   }
 
+  /**
+   *@description finds a user
+   *@static
+   *@param  {Object} req - request
+   *@param  {object} res - response
+   *@returns {object} - existing user, details
+   *@memberof ConnectionController
+   */
+  static async getUser(req, res) {
+    const token = req.headers.authorization || req.headers['x-access-token'];
+    const decoded = jwt.decode(token);
+
+    const { phoneNumber } = decoded;
+    const user = await User.findOne({
+      phoneNumber
+    });
+
+    let userWallet;
+    if (user.role === 'admin') {
+      userWallet = { totalAmount: 0 };
+    }
+    userWallet = await elastic
+      .retrieveOne('halaapp-wallet', 'wallet', phoneNumber);
+
+    const userFound = {
+      id: user.id,
+      username: user.username,
+      friends: user.friends,
+      phoneNumber: user.phoneNumber,
+      imageUrl: user.imageUrl,
+      verificationStatus: user.verified,
+      bio: user.bio,
+      role: user.role,
+      banks: user.banks,
+      email: user.email,
+      amount: userWallet.totalAmount
+    };
+    return res.status(200).json(
+      responses.success(200, 'User found successfully', userFound)
+    );
+  }
+
 }
