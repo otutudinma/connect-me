@@ -246,4 +246,33 @@ class SettingController {
     return false;
   }
 
+  /**
+   *@description Save card details of a user
+   *@static
+   *@param  {Object} req - request
+   *@param  {object} res - response
+   *@memberof SettingController
+   */
+  static async getCardDetails(req, res) {
+    try {
+      const jwttoken = req.headers.authorization || req.headers['x-access-token'];
+      const decoded = jwt.decode(jwttoken);
+
+      const {
+        phoneNumber
+      } = decoded;
+      const wallet = await Wallet.findOne({
+        phoneNumber
+      });
+      if (!wallet) {
+        return res.status(400).json(responses.error(400, 'Unable to find user'));
+      }
+      return res.status(200).json(responses.success(200, 'User\'s card details',
+        wallet.cardTokens));
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
+
+  
 }
