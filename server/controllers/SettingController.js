@@ -80,4 +80,59 @@ class SettingController {
     }
   }
 
+  /**
+   *@description Creates a new wallet for a new user
+   *@static
+   *@param  {Object} req - request
+   *@param  {Object} res - request
+   *@returns {object} - null
+   *@memberof SettingController
+   */
+  static async removeBankData(req, res) {
+    try {
+      const {
+        phoneNumber,
+        accountNumber,
+      } = req.body;
+      const retrievedUser = await SettingController.retrieveUser(res, phoneNumber);
+      if (!retrievedUser.phoneNumber) return;
+      if (!retrievedUser.banks.length) {
+        return res.status(404).json(
+          responses.error(404, 'No bank details added yet')
+        );
+      }
+      const {
+        banks
+      } = retrievedUser;
+      const accountExist = banks && banks.find(bank => bank.accountNumber === accountNumber);
+      if (!accountExist) {
+        return res.status(404).json(
+          responses.error(404, 'This bank does not exist on your account')
+        );
+      }
+      const updatedProfile = await User.findOneAndUpdate({
+        phoneNumber
+      }, {
+        $pull: {
+          banks: {
+            accountNumber
+          }
+        }
+      }, {
+        new: true
+      });
+      const handledQueue = SettingController.handleQueue(updatedProfile);
+      if (handledQueue) {
+        return res.status(200).json(
+          responses.success(200, 'Bank data successfully removed', updatedProfile.banks)
+        );
+      }
+    } catch (error) {
+      traceLogger(error);
+      return res.status(500).json(
+        responses.error(500, 'Server error, failed to remove bank details')
+      );
+    }
+  }
+
 }
