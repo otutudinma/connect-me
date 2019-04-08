@@ -221,4 +221,45 @@ class ConnectionController {
       receiver
     };
   } 
+
+   /**
+   *@description Adds the found user to connection
+   *@static
+   *@param  {Object} res - request
+   *@param  {object} users - object of sender's and receiver's number
+   *@returns {object} - status code, message/error and adds the user to connection
+   *@memberof connectionController
+   */
+  static async writeNewConnections({
+    sender,
+    receiver
+  }) {
+    try {
+      const updatedSender = await User.findOneAndUpdate({
+        phoneNumber: sender.phoneNumber
+      }, {
+        $addToSet: {
+          friends: sender.newFriend
+        }
+      }, {
+        new: true
+      });
+      const updatedReceiver = await User.findOneAndUpdate({
+        phoneNumber: receiver.phoneNumber
+      }, {
+        $addToSet: {
+          friends: receiver.newFriend
+        }
+      }, {
+        new: true
+      });
+      return {
+        updatedSender,
+        updatedReceiver
+      };
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
+
 }
