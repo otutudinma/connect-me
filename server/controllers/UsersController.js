@@ -138,4 +138,116 @@ class UsersController {
       );
     }
   }
+
+  /**
+   *@description Verifies the user
+   *@static
+   *@param  {Object} req - request
+   *@param  {object} res - response
+   *@returns {object} - status code and message
+   *@memberof UsersController
+   */
+  static async verifyUser(req, res) {
+    const {
+      phoneNumber,
+      token
+    } = req.body;
+    if (!token || !token.trim()) {
+      return res.status(400).json(
+        responses.error(400, 'Please enter an OTP')
+      );
+    }
+    try {
+      const user = await User.findOne({
+        phoneNumber
+      });
+      if (!user) {
+        return res.status(404).json(
+          responses.error(404, 'Phone number not yet registered')
+        );
+      }
+      const decodedToken = await tokenHelper.verifyToken(user.token);
+      if (!decodedToken || decodedToken.otp !== token) {
+        await User.findOneAndUpdate({
+          phoneNumber
+        }, {
+          $set: {
+            token: ''
+          }
+        });
+        return res.status(404).json(
+          responses.error(404, 'Token provided is invalid, request for another')
+        );
+      }
+      const payload = {
+        id: user._id,
+        phoneNumber: user.phoneNumber
+      };
+      const jwtToken = jwt.sign(payload, JWT_SECRET);
+      const newData = {
+        verified: 'true',
+        token: '',
+        jwtToken
+      };
+      const updatedUser = await User.findOneAndUpdate({
+        phoneNumber
+      }, {
+        $set: newData
+      });
+      user.verified = newData.verified;
+      user.token = newData.token;
+      user.jwtToken = newData.jwtToken;
+      if (updatedUser) {
+        return rabbitMq.rabbitSend(QUEUE_NAME, JSON.stringify(user), false,
+          (rabbitResponse) => {
+            if (rabbitResponse) {
+              // Send a success response.
+              return res.status(200).json(responses.success(200, 'User successfully verified', {
+                user,
+                jwtToken
+              }));
+            }
+            fs.outputFile(
+              `jobs/user/${Date.now() + user.phoneNumber}.json`,
+              JSON.stringify(user),
+              (fileError) => {
+                if (fileError) {
+                  return fileError;
+                }
+                emailService(NOTIFICATION_EMAILS)
+                  .then((err) => {
+                    if (err) {
+                      return res.status(200).json(
+                        responses.success(200, 'User successfully verified', {
+                          user,
+                          jwtToken
+                        })
+                      );
+                    }
+                  })
+                  // eslint-disable-next-line no-unused-vars
+                  .catch(err => res.status(200).json(
+                    responses.success(200, 'User successfully verified', {
+                      user,
+                      jwtToken
+                    })
+                  ));
+              }
+            );
+          });
+      }
+      return res.status(200).json(
+        responses.success(200, 'User successfully verified', {
+          user,
+          jwtToken
+        })
+      );
+    } catch (error) {
+      traceLogger(error);
+      return res.status(500).json(
+        responses.error(500, 'Server error, failed to verify user')
+      );
+    }
+  }
+
 }
