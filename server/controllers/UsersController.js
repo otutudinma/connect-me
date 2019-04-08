@@ -636,4 +636,103 @@ class UsersController {
     }
   }
 
+  /**
+  *@description Allows user change phone number
+  *@static
+  *@param  {Object} req - request
+  *@param  {object} res - response
+  *@returns {object} - status code, message and current user
+  *@memberof UsersController
+  */
+ static async changeNumber(req, res) {
+    try {
+      const { newNumber } = req.body;
+
+      const jwttoken = req.headers.authorization || req.headers['x-access-token'];
+      const decoded = jwt.decode(jwttoken);
+
+      const {
+        phoneNumber
+      } = decoded;
+      const user = await User.findOne({ phoneNumber });
+      if (!user) {
+        return res.status(404).json(
+          responses.error(404, 'This account doesnt exist')
+        );
+      }
+      if (phoneNumber === parseInt(newNumber.slice(1), 10)) {
+        return res.status(400).json(
+          responses.error(400, 'sorry, the numbers are the same')
+        );
+      }
+      const payload = {
+        id: user._id,
+        phoneNumber: newNumber.slice(1)
+      };
+      const jwtToken = jwt.sign(payload, JWT_SECRET);
+      const updatedUser = await User.findOneAndUpdate({
+        phoneNumber
+      }, {
+        $set: {
+          phoneNumber: newNumber,
+          jwtToken
+        }
+      }, {
+        new: true
+      });
+      const {
+        bio,
+        role,
+        verified,
+        resetCode,
+        friends,
+        banks,
+        date,
+        phoneNumber: phone,
+        token,
+        firebaseToken
+      } = updatedUser;
+      const newUpdatedUser = {
+        bio,
+        role,
+        verified,
+        phoneNumber: newNumber,
+        resetCode,
+        friends,
+        banks,
+        date,
+        phone,
+        token,
+        firebaseToken,
+        jwtToken
+      };
+
+      await elastic.deleteData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber, esResponse => esResponse);
+      await elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, newNumber.slice(1), newUpdatedUser, esResponse => esResponse);
+
+      const userWallet = await Wallet.findOneAndUpdate({
+        phoneNumber
+      }, {
+        $set: {
+          phoneNumber: newNumber
+        }
+      }, {
+        new: true
+      });
+      const {
+        isActivated, totalAmount, codeInputCount, codeTimer, transactionReference, merchantReference
+      } = userWallet;
+
+      const updatedUserWallet = {
+        isActivated, totalAmount, codeInputCount, codeTimer, transactionReference, merchantReference, phoneNumber: newNumber
+      };
+      await elastic.deleteData('halaapp-wallet', 'wallet', phoneNumber, esResponse => esResponse);
+      await elastic.addData('halaapp-wallet', 'wallet', newNumber.slice(1), updatedUserWallet, esResponse => esResponse);
+
+
+      return res.status(200).json(responses.success(200, 'Token stored successfully', { updatedUser, jwtToken }));
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
 }
