@@ -1,0 +1,14 @@
+/node_modules
+
+.env
+/.vscode/
+/logs/*
+.gitkeep
+.nyc_output
+coverage
+ErrorLogs
+dist
+dist/
+dump.rdb
+Archive.zip
+.DS_Store
