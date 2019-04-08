@@ -1,0 +1,39 @@
+{
+  "apps": [{
+      "name": "user-success",
+      "script": "./server/jobs/user/user.js",
+      "watch": true,
+      "exec_interpreter": "babel-node"
+    },
+    {
+      "name": "user-resolved",
+      "script": "./server/jobs/user/failOver.js",
+      "watch": true,
+      "exec_interpreter": "babel-node"
+    },
+    {
+      "name": "connection-success",
+      "script": "./server/jobs/connections/connections.js",
+      "watch": true,
+      "exec_interpreter": "babel-node"
+    },
+    {
+      "name": "connection-resolved",
+      "script": "./server/jobs/connections/failOver.js",
+      "watch": true,
+      "exec_interpreter": "babel-node"
+    },
+    {
+      "name": "profile-update-success",
+      "script": "./server/jobs/profileUpdate/profileUpdate.js",
+      "watch": true,
+      "exec_interpreter": "babel-node"
+    },
+    {
+      "name": "profile-update-resolved",
+      "script": "./server/jobs/profileUpdate/failOver.js",
+      "watch": true,
+      "exec_interpreter": "babel-node"
+    }
+  ]
+}
