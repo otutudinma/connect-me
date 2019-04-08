@@ -250,4 +250,67 @@ class UsersController {
     }
   }
 
+  /**
+   *@description Updates a user's profile
+   *@static
+   *@param  {Object} req - request
+   *@param  {object} res - response
+   *@returns {object} - status code, message and updated user's details
+   *@memberof UsersController
+   */
+  static async updateUserProfile(req, res) {
+    const {
+      phoneNumber,
+      username,
+      imageUrl,
+      bio,
+      email
+    } = req.body;
+    try {
+      const updatedProfile = await UsersController.findUserToUpdate(
+        res, {
+          phoneNumber,
+          username,
+          imageUrl,
+          bio,
+          email,
+        }
+      );
+      if (updatedProfile.phoneNumber) {
+        return rabbitMq.rabbitSend(QUEUE_NAME, JSON.stringify(updatedProfile), false,
+          (rabbitResponse) => {
+            if (rabbitResponse) {
+              // Send a success response.
+              return res.status(200).json(responses.success(200, 'User profile updated successfully', updatedProfile));
+            }
+            fs.outputFile(
+              `jobs/user/${updatedProfile._id}-profile.json`,
+              JSON.stringify(updatedProfile),
+              (fileError) => {
+                if (fileError) {
+                  return fileError;
+                }
+              }
+            );
+            return res.status(200).json(responses.success(201, 'User profile updated successfully', updatedProfile));
+          });
+      }
+      return res.status(200).json({
+        message: 'User profile updated successfully',
+        updatedProfile
+      });
+    } catch (error) {
+      if (error.name === 'MongoError' && error.code === 11000) {
+        return res.status(500).json({
+          error: true,
+          message: 'Username already taken!'
+        });
+      }
+      traceLogger(error);
+      return res.status(500).json(
+        responses.error(500, 'Server error, failed to update user profile')
+      );
+    }
+  }
+
 }
