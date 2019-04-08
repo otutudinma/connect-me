@@ -1,0 +1,24 @@
+{
+  "name": "connect-me",
+  "version": "1.0.0",
+  "description": "Allowers friends from all over the world chat and also send money to one another",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/otutudinma/connect-me.git"
+  },
+  "keywords": [
+    "Chat",
+    "money",
+    "friends"
+  ],
+  "author": "Chidinma Otutu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/otutudinma/connect-me/issues"
+  },
+  "homepage": "https://github.com/otutudinma/connect-me#readme"
+}
