@@ -175,4 +175,50 @@ class SettingController {
     return retrievedUser;
   }
 
+  /**
+   *@description Creates a new wallet for a new user
+   *@static
+   *@param  {Object} res - request
+   *@param  {Object} phoneNumber - phoneNumber
+   *@returns {object} - null
+   *@memberof SettingController
+   */
+  static async retrieveWallet(res, phoneNumber) {
+    let retrievedWallet;
+    retrievedWallet = await elastic
+      .retrieveOne('halaapp-wallet', 'wallet', phoneNumber.slice(1));
+    if (!retrievedWallet) {
+      const checkWallet = await Wallet.findOne({
+        phoneNumber: phoneNumber.slice(1)
+      });
+      if (!checkWallet) return res.status(404).json(responses.error(404, 'Sorry this wallet does not exist'));
+      retrievedWallet = checkWallet;
+      const {
+        isActivated,
+        totalAmount,
+        codeInputCount,
+        passCode,
+        securityAnswer,
+        securityQuestion,
+        codeTimer
+      } = retrievedWallet;
+      const walletObject = {
+        isActivated,
+        totalAmount,
+        codeInputCount,
+        passCode,
+        phoneNumber,
+        securityAnswer,
+        securityQuestion,
+        codeTimer
+      };
+      elastic.addData('halaapp-wallet', 'wallet', phoneNumber, walletObject, esResponse => esResponse);
+    }
+
+    if (!retrievedWallet.isActivated) {
+      return res.status(401).json(responses.error(401, 'You need to activate your wallet'));
+    }
+    return retrievedWallet;
+  }
+
 }
