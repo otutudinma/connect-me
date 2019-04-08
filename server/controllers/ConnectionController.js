@@ -17,4 +17,141 @@ const {
  * @description Defines the actions to for the users endpoints
  * @class UsersController
  */
-class ConnectionController {}
+class ConnectionController {
+     /**
+   *@description Adds the found user to connection
+   *@static
+   *@param  {Object} req - request
+   *@param  {object} res - response
+   *@returns {object} - status code, message/error and adds the user to connection
+   *@memberof connectionController
+   */
+  static async addConnections(req, res) {
+    const {
+      senderNumber,
+      receiverNumber
+    } = req.body;
+    try {
+      if (senderNumber === receiverNumber) {
+        return res.status(400).json(
+          responses.error(400, 'Sorry, you cannot add yourself to your connection')
+        );
+      }
+      const {
+        sender,
+        receiver
+      } = await ConnectionController
+        .checkUserValidity(res, {
+          senderNumber,
+          receiverNumber
+        });
+      if (sender.phoneNumber && sender.friends.includes(receiver.phoneNumber)) {
+        return res.status(400).json(responses.error(400, 'User is in your list of connections'));
+      }
+      sender.newFriend = sender && receiver.phoneNumber;
+      receiver.newFriend = receiver && sender.phoneNumber;
+      const {
+        updatedSender,
+        updatedReceiver
+      } = await ConnectionController
+        .writeNewConnections({
+          sender,
+          receiver
+        });
+      const {
+        bio,
+        role,
+        verified,
+        resetCode,
+        friends,
+        banks,
+        date,
+        phoneNumber,
+        token
+      } = updatedSender;
+      const savedSender = {
+        bio,
+        role,
+        verified,
+        resetCode,
+        friends,
+        banks,
+        date,
+        phoneNumber,
+        token
+      };
+
+      const {
+        bio: userBio,
+        role: userRole,
+        verified: userVerified,
+        resetCode: userResetCode,
+        friends: userFriends,
+        banks: userBanks,
+        date: userDate,
+        phoneNumber: userPhoneNumber,
+        token: usersToken
+      } = updatedReceiver;
+      const savedReceiver = {
+        bio: userBio,
+        role: userRole,
+        verified: userVerified,
+        resetCode: userResetCode,
+        friends: userFriends,
+        banks: userBanks,
+        date: userDate,
+        phoneNumber: userPhoneNumber,
+        token: usersToken
+      };
+      if (sender && receiver) {
+        const friend = await User.findOne({
+          phoneNumber: receiverNumber.slice(1)
+        });
+        const receiverData = {
+          username: friend.username,
+          imageUrl: friend.imageUrl,
+          id: friend._id,
+          bio: friend.bio,
+          role: friend.role,
+          date: friend.date,
+        };
+        await elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, receiverNumber.slice(1), savedReceiver, esResponse => esResponse);      
+        try {
+          const userToken = friend.firebaseDeviceToken;
+          const payload = {
+            notification: {
+              sound: 'default'
+            },
+            data: {
+              type: 'CONNECTION_NOTIFICATION',
+              sender: `${updatedSender._id}`,
+            }
+          };
+          const options = {
+            priority: 'high',
+            timeToLive: 60 * 60 * 24
+          };
+          const notificationResponse = await notification(userToken, payload, options);
+          if (notificationResponse.successCount !== 1) {
+            process.stdout.write('Failed to send notification');
+          }
+        } catch (error) {
+          traceLogger(error);
+        }
+        await elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, senderNumber.slice(1), savedSender, esResponse => esResponse);
+        // Send a success response.
+        return res.status(201).json(responses.success(201, 'User successfully added to your connections', {
+          updatedSender,
+          receiverData
+        }));
+      }
+    } catch (error) {
+      traceLogger(error);
+      return res.status(500).json(
+        responses.error(500, 'Server error, failed to add to your connections')
+      );
+    }
+  }
+
+  
+}
