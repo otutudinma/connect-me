@@ -135,4 +135,44 @@ class SettingController {
     }
   }
 
+  /**
+   *@description Creates a new wallet for a new user
+   *@static
+   *@param  {Object} res - request
+   *@param  {Object} phoneNumber - phoneNumber
+   *@returns {object} - null
+   *@memberof SettingController
+   */
+  static async retrieveUser(res, phoneNumber) {
+    let retrievedUser;
+    retrievedUser = await elastic
+      .retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber.slice(1));
+    if (!retrievedUser) {
+      const checkUser = await User.findOne({
+        phoneNumber: phoneNumber.slice(1)
+      });
+      if (!checkUser) return res.status(404).json(responses.error(404, 'Sorry this account does not exist'));
+      retrievedUser = checkUser;
+      const {
+        verified,
+        friends,
+        token,
+        banks
+      } = retrievedUser;
+      const userObject = {
+        verified,
+        friends,
+        token,
+        phoneNumber,
+        banks
+      };
+      elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber.slice(1), userObject, esResponse => esResponse);
+    }
+
+    if (retrievedUser.verified === 'pending') {
+      return res.status(401).json(responses.error(401, 'You need to verify your account first'));
+    }
+    return retrievedUser;
+  }
+
 }
