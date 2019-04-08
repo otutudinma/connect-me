@@ -221,4 +221,29 @@ class SettingController {
     return retrievedWallet;
   }
 
+  /**
+   *@description Creates a new wallet for a new user
+   *@static
+   *@param  {Object} updatedProfile - updatedProfile
+   *@returns {object} - null
+   *@memberof SettingController
+   */
+  static async handleQueue(updatedProfile) {
+    if (updatedProfile) {
+      return rabbitMq.rabbitSend(QUEUE_NAME, JSON.stringify(updatedProfile), false,
+        () => {
+          fs.outputFile(
+            `jobs/user/${updatedProfile._id}-profile.json`,
+            JSON.stringify(updatedProfile),
+            (fileError) => {
+              if (fileError) {
+                return fileError;
+              }
+            }
+          );
+        });
+    }
+    return false;
+  }
+
 }
