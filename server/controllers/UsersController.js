@@ -313,4 +313,92 @@ class UsersController {
     }
   }
 
+   /**
+   *@description Updates a user's profile
+   *@static
+   *@param  {object} res - response
+   *@param  {Object} body - request body
+   *@returns {object} - status code, message and updated user's details
+   *@memberof UsersController
+   */
+  static async findUserToUpdate(res, {
+    phoneNumber,
+    username,
+    imageUrl,
+    bio
+  }) {
+    let userToUpdate;
+    userToUpdate = await elastic
+      .retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber.slice(1));
+    if (!userToUpdate) {
+      userToUpdate = await User.findOne({
+        phoneNumber
+      });
+      const {
+        verified,
+        friends,
+        token,
+        phoneNumber: userNumber,
+      } = userToUpdate;
+      const userObject = {
+        verified,
+        friends,
+        token,
+        phoneNumber: userNumber,
+        username,
+        imageUrl,
+        bio
+      };
+      elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber, userObject, esResponse => esResponse);
+    }
+    if (userToUpdate.verified !== 'true') {
+      return res.status(400).json(responses.error(400, 'account not yet verified'));
+    }
+    if (userToUpdate.verified !== 'true') return;
+    if (!userToUpdate) {
+      return res.status(404).json(responses.error(404, 'Phone number not yet registered'));
+    }
+    const updatedProfile = await User.findOneAndUpdate({
+      phoneNumber
+    }, {
+      $set: {
+        username: username || userToUpdate.username,
+        imageUrl: imageUrl || userToUpdate.imageUrl,
+        bio: bio || userToUpdate.bio
+      }
+    }, {
+      new: true
+    });
+    const {
+      verified,
+      resetCode,
+      friends,
+      banks,
+      date,
+      phoneNumber: phone,
+      token,
+      role,
+      email,
+      bio: biography,
+      imageUrl: url,
+      username: name
+    } = updatedProfile;
+    const user = {
+      verified,
+      resetCode,
+      friends,
+      banks,
+      date,
+      phone,
+      token,
+      email,
+      biography,
+      role,
+      url,
+      name
+    };
+    await elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber, user, esResponse => esResponse);
+    return updatedProfile;
+  }
+
 }
