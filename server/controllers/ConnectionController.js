@@ -306,4 +306,51 @@ class ConnectionController {
     }
   }
 
+  /**
+   *@description Gets all user's connections
+   *@static
+   *@param  {Object} req - request
+   *@param  {Object} res - respinse
+   *@returns {object} - a user's connections
+   *@memberof connectionController
+   */
+  static async deleteConnections(req, res) {
+    try {
+      const {
+        phoneNumber,
+        friendToRemove
+      } = req.body;
+      const retrievedUser = await SettingController.retrieveUser(res, phoneNumber);
+      if (!retrievedUser.phoneNumber) return;
+      const {
+        friends
+      } = retrievedUser;
+      const friend = parseInt(friendToRemove.slice(1), 10);
+      const initiator = parseInt(phoneNumber.slice(1), 10);
+      if (!friends.length) {
+        return res.status(404).json(responses.error(404, 'No connections found'));
+      }
+      if (friends.includes(SUPPORT_LINE)) {
+        return res.status(404).json(responses.error(404, 'Sorry, you cannot remove this user'));
+      }
+      if (!friends.includes(friend)) {
+        return res.status(404).json(responses.error(404, 'User is not in your list of connections'));
+      }
+      const {
+        updatedSender,
+        updatedReceiver
+      } = await ConnectionController
+        .handleConnectionRemoval(initiator, friend);
+      if (updatedSender && updatedReceiver) {
+        return res.status(200).json(responses.success(200, 'Friend removed successfully', {
+          friends: updatedSender.friends
+        }));
+      }
+    } catch (error) {
+      traceLogger(error);
+      return res.status(500).json(
+        responses.error(500, 'Server error, failed to remove connection')
+      );
+    }
+  }
 }
