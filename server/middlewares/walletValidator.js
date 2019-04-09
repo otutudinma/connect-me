@@ -17,6 +17,19 @@ const walletValidator = {
 
     validationErrorHandler(req, res, next);
   },
+
+  verifyAccountActivator: (req, res, next) => {
+    req.check('bankCode', 'phoneNumber should be 3 digits').isLength({
+      min: 3,
+      max: 3
+    });
+    req.check('accountNumber', 'account number should be 14 digits').isLength({
+      min: 14,
+      max: 14
+    });
+
+    validationErrorHandler(req, res, next);
+  },
 };
 
 export default walletValidator;
