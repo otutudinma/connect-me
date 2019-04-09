@@ -114,6 +114,17 @@ const walletValidator = {
 
     validationErrorHandler(req, res, next);
   },
+
+  verifyPhone: (req, res, next) => {
+    req.check('phoneNumber', 'phone number should be a number').isInt();
+    req.check('phoneNumber', 'phone number should be 14 digits').isLength({
+      min: 14,
+      max: 14
+    });
+    req.check('otp', 'otp should be number').isInt();
+
+    validationErrorHandler(req, res, next);
+  },
 };
 
 export default walletValidator;
