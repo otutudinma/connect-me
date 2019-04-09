@@ -81,6 +81,39 @@ const walletValidator = {
 
     validationErrorHandler(req, res, next);
   },
+
+
+  fundWalletVerification: (req, res, next) => {
+    req.check('phonenumber', 'phone number should be a number').isInt();
+    req.check('phonenumber', 'phone number should be 14 digits').isLength({
+      min: 14,
+      max: 14
+    });
+    req.check('email', 'Email is required').notEmpty();
+    req.check('email', 'Email is not valid').isEmail();
+    req.check('expirymonth', 'Expiry month should be 2 digits').isLength({
+      min: 2,
+      max: 2
+    });
+    req.check('expirymonth', 'Expiry month should not be empty').notEmpty();
+    req.check('expiryyear', 'Expiry year should be 2 digits').isLength({
+      min: 2,
+      max: 2
+    });
+    req.check('expiryyear', 'Expiry year should not be empty').notEmpty();
+    req.check('pin', 'Pin should be 4 digits').isLength({
+      min: 4,
+      max: 4
+    });
+    req.check('cvv', 'cvv should be 4 digits').isLength({
+      min: 3,
+      max: 3
+    });
+    req.check('cardno', 'card number should be a number').isInt();
+    req.check('amount', 'amount should be a digit').isInt();
+
+    validationErrorHandler(req, res, next);
+  },
 };
 
 export default walletValidator;
