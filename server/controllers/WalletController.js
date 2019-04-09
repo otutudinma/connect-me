@@ -59,4 +59,59 @@ class WalletController {
     elastic.addData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber, walletObject, esResponse => esResponse);
   }
 
+  /**
+   *@description Activates a user's wallet
+   *@static
+   *@param  {Object} req - request
+   *@param  {Object} res - request
+   *@returns {object} - null
+   *@memberof walletController
+   */
+  static async activateWallet(req, res) {
+    try {
+      const {
+        phoneNumber,
+        passCode,
+        securityQuestion,
+        securityAnswer, email
+      } = req.body;
+      if (!email) return res.status(400).json(responses.error(400, 'email is required to activate wallet'));
+      const existingUser = await User.findOne({
+        phoneNumber
+      });
+      const retrievedWallet = await Wallet.findOne({
+        phoneNumber
+      });
+      if (!existingUser && !retrievedWallet) {
+        return res.status(404).json(responses.error(404, 'User not found'));
+      }
+      if (existingUser.verified !== 'true') return res.status(400).json(responses.error(400, 'You are yet to verify your account'));
+      if (retrievedWallet.isActivated) return res.status(400).json(responses.error(400, 'Your wallet is already activated'));
+      const {
+        hashData
+      } = DataProtector;
+      const updatedWallet = await Wallet.findOneAndUpdate({
+        phoneNumber
+      }, {
+        $set: {
+          passCode: hashData(passCode),
+          securityQuestion,
+          securityAnswer: hashData(securityAnswer),
+          isActivated: true,
+          email
+        }
+      }, {
+        new: true
+      });
+      const walletObject = WalletController.updateElastic(updatedWallet);
+      delete (walletObject.passCode);
+      delete (walletObject.securityAnswer);
+      return res.status(200).json(responses.success(200, 'Wallet successfully activated', walletObject));
+    } catch (error) {
+      traceLogger(error);
+      return res.status(500).json(
+        responses.error(500, 'Server error, failed to activate wallet')
+      );
+    }
+  }
 }
