@@ -355,3 +355,5 @@ class SettingController {
     }
   }
 }
+
+export default SettingController;
