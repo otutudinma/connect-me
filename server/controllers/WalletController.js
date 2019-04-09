@@ -146,4 +146,38 @@ class WalletController {
     walletObject._id = _id;
     return walletObject;
   }
+
+  /**
+   *@description Send money to connections
+   *@static
+   *@param  {Object} req - request
+   *@param  {Object} res - request
+   *@returns {object} - null
+   *@memberof walletController
+   */
+  static async sendMoney(req, res) {
+    try {
+      const {
+        senderNumber,
+        receiverNumber,
+        amountSent,
+      } = req.body;
+
+      if (senderNumber.trim() === receiverNumber.trim()) return res.status(400).json(responses.error(400, 'Please you cannot send money to yourself'));
+
+      const amount = amountSent.replace(/[,]/g, '');
+      const validSender = await elastic
+        .retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, senderNumber.slice(1));
+
+      if (validSender.resetCode) return res.status(401).json(responses.error(400, 'Please reset your passcode before sending'));
+
+      // check if both sender and receiver are hala app users and verified
+      const {
+        sender,
+        receiver
+      } = await ConnectionController
+        .checkUserValidity(res, {
+          senderNumber,
+          receiverNumber
+        });
 }
