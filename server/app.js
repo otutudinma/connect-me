@@ -77,4 +77,5 @@ process.on('unhandledRejection', (reason) => {
 process.on('uncaughtException', (reason) => {
   traceLogger(reason);
 });
+
 export default app;
