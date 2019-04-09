@@ -262,4 +262,48 @@ class ConnectionController {
     }
   }
 
+  /**
+   *@description Gets all user's connections
+   *@static
+   *@param  {Object} req - request
+   *@param  {Object} res - respinse
+   *@returns {object} - a user's connections
+   *@memberof connectionController
+   */
+  static async getAllConnections(req, res) {
+    try {
+      const token = req.headers.authorization || req.headers['x-access-token'];
+      const decoded = jwt.decode(token);
+
+      const {
+        phoneNumber
+      } = decoded;
+
+      const users = await User.findOne({
+        phoneNumber
+      });
+
+      const connectionDetails = [];
+      const splicedUsers = users.friends.reverse();
+      const friends = splicedUsers.map(async (user) => {
+        const userConnection = await User.findOne({
+          phoneNumber: user
+        });
+
+        connectionDetails.push(userConnection);
+        return connectionDetails;
+      });
+
+      await Promise.all(friends);
+
+      if (connectionDetails.length === 0) {
+        return res.status(404).json(responses.error(404, 'No connections found'));
+      }
+
+      return res.status(200).json(responses.success(200, 'Connections retrieved successfully', connectionDetails));
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
+
 }
