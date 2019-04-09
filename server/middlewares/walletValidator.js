@@ -30,6 +30,26 @@ const walletValidator = {
 
     validationErrorHandler(req, res, next);
   },
+
+  codeRestValidator: (req, res, next) => {
+    req.check('phoneNumber', 'phoneNumber should be 14 digits').isLength({
+      min: 14,
+      max: 14
+    });
+    req.check('phoneNumber', 'phoneNumber is required and should be a number e.g +234xxxxxxxxxx').isInt();
+    req.check('previousCode', 'previousCode should be 4 digits').isLength({
+      min: 4,
+      max: 4
+    });
+    req.check('previousCode', 'previousCode is required and should be a number e.g +234xxxxxxxxxx').isInt();
+    req.check('newCode', 'newCode should be 4 digits').isLength({
+      min: 4,
+      max: 4
+    });
+    req.check('newCode', 'newCode is required and should be a number e.g +234xxxxxxxxxx').isInt();
+
+    validationErrorHandler(req, res, next);
+  },
 };
 
 export default walletValidator;
