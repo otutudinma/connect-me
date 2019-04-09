@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  deploy:
+    docker:
+      - image: circleci/node:10-browsers-legacy
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "79:09:a7:ae:4c:91:99:67:af:be:21:79:57:27:63:af"
+      - checkout
+      - run:
+          name: Add Dokku to known_hosts
+          command: |
+            ssh-keyscan -H 167.99.87.209 >> ~/.ssh/known_hosts
+            ssh-keyscan -H 167.99.87.209 >> ~/.ssh/known_hosts
+      - run: echo -e "Host 167.99.87.209\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+      - run:
+          name: Add remote staging digital ocean
+          command: |
+            git remote add staging dokku@167.99.87.209:hala-staging && git remote set-url staging dokku@167.99.87.209:hala-staging
+      - run:
+          name: Push the app to dokku
+          command: |
+            git push -f staging master
+workflows:
+  version: 2
+
+  build-deploy:
+    jobs:
+      - deploy:
+          filters:
+            branches:
+              only: master
