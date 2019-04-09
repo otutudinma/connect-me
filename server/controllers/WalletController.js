@@ -240,5 +240,58 @@ class WalletController {
                   amount,
                   status: 'successful'
                 });
-          
+                if (!senderTransaction || !receiverTransaction) return res.status(500).json(responses.error(500, 'Failed to create transaction history!'));
+                const data = {
+                  amountSent: parseFloat(amount, 10),
+                  time: senderTransaction.created_at,
+                  walletBalance: validatedSender.totalAmount.toFixed(3).replace(/0+$/, '')
+                };
+                try {
+                  const receiverToken = beneficiaryUsername.firebaseDeviceToken;
+                  const senderToken = senderName.firebaseDeviceToken;
+                  const receiverPayload = {
+                    notification: {
+                      sound: 'default'
+                    },
+                    data: {
+                      type: 'CREDIT_MONEY_NOTIFICATION',
+                      sender: `${beneficiaryUsername._id}`,
+                      body: `${senderName.username} sent you N${amount}`,
+                      text: `${senderName.username} sent you N${amount}`
+                    }
+                  };
+                  const senderPayload = {
+                    notification: {
+                      sound: 'default'
+                    },
+                    data: {
+                      type: 'DEBIT_MONEY_NOTIFICATION',
+                      sender: `${senderName._id}`,
+                      body: `You sent N${amount} to ${beneficiaryUsername.username}`,
+                      text: `You sent N${amount} to ${beneficiaryUsername.username}`
+                    }
+                  };
+                  const options = {
+                    priority: 'high',
+                    timeToLive: 60 * 60 * 24
+                  };
+                  await notification(receiverToken, receiverPayload, options);
+                  const notificationResponse = await notification(senderToken, senderPayload, options);
+                  if (notificationResponse.successCount !== 1) {
+                    process.stdout.write('Failed to send notification');
+                  }
+                } catch (error) {
+                  traceLogger(error);
+                }
+                return res.status(200).json(responses.success(200, 'Money successfully sent!', data));
+              }
+        
+              return res.status(404).json(responses.error(404, 'Sorry, user is not in your connections'));
+            } catch (error) {
+              traceLogger(error);
+              return res.status(500).json(
+                responses.error(500, 'Server error, failed to send money')
+              );
+            }
+          }          
 }
