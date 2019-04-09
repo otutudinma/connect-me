@@ -114,4 +114,36 @@ class WalletController {
       );
     }
   }
+
+  /**
+   *@description Updates user's wallet on elasticsearch
+   *@static
+   *@param  {Object} updatedWallet - updated wallet data
+   *@returns {object} - null
+   *@memberof walletController
+   */
+  static updateElastic(updatedWallet) {
+    const {
+      _id,
+      phoneNumber,
+      isActivated,
+      passCode,
+      totalAmount,
+      securityQuestion,
+      email,
+      securityAnswer
+    } = updatedWallet;
+    const walletObject = {
+      phoneNumber,
+      isActivated,
+      passCode,
+      totalAmount,
+      securityQuestion,
+      securityAnswer,
+      email
+    };
+    elastic.updateData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, phoneNumber, walletObject, esResponse => esResponse);
+    walletObject._id = _id;
+    return walletObject;
+  }
 }
