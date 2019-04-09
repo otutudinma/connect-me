@@ -335,4 +335,27 @@ class WalletController {
       traceLogger(error);
     }
   }
+
+    /**
+   *@description validates user's passCode
+   *@static
+   *@param  {Object} res - resp
+   *@param  {Number} passCode - passCode of the wallet
+   *@param  {Object} validSender - sender's data
+   *@param  {Number} senderNumber - phone number of the sender
+   *@returns {object} - updated sender's and receiver's details
+   *@memberof walletController
+   */
+  static async validateCode(res, {
+    passCode,
+    validSender
+  }) {
+    const {
+      compareData
+    } = DataProtector;
+    const checkCode = compareData(passCode, validSender.passCode);
+
+    if (!checkCode) return false;
+    return true;
+  }
 }
