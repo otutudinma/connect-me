@@ -31,3 +31,29 @@ To access the endpoint for account verification
 ```
 PUT REQUEST| localhost:4500/api/users
 ```
+#### Uploading a profile picture
+To upload a profile picture, it is sent as a `multipart/form-data` which accepts a field `image` which should be `jpg, png or jpeg`
+To access the endpoint 
+```
+POST REQUEST| localhost:4500/api/users/images
+
+The endpoint of image upload is meant to upload image to cloudinary and return the url as response
+It is the returned URL that is passed to the profile update endpoint to be stored on the database
+On the frontend, the upload for instance will be triggered `onselecting image` then the response will be sent through a new endpoint
+```
+#### Adding a username
+To add a username as part of profile update, two fields are required the username and the phone number which should be unique and should be sent in json format
+```
+{
+  "phoneNumber": "+23470622222222",
+  "username": "myUsername",
+  "bio": "I love this application, I am a business owner who loves to hang out"
+  "imageUrl": "https://image......"
+
+}
+```
+Note: the username and phone number are unique
+To access the endpoint 
+```
+PUT REQUEST| localhost:4500/api/users/profile
+```
