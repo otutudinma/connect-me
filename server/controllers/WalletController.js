@@ -400,4 +400,50 @@ class WalletController {
     WalletController.updateElastic(updatedWallet);
     return res.status(200).json(responses.success(200, 'Passcode reset successful'));
   }
+
+  /**
+   *@description Recover a user's passcode
+   *@static
+   *@param  {Object} req - request
+   *@param  {Object} res - request
+   *@returns {object} - null
+   *@memberof walletController
+   */
+  static async walletCodeRecovery(req, res) {
+    const {
+      phoneNumber,
+      securityAnswer,
+      newCode,
+      confirmNewCode
+    } = req.body;
+    if (newCode.trim() !== confirmNewCode.trim()) return res.status(400).json(responses.error(400, 'Code does not match'));
+    const {
+      hashData,
+      compareData
+    } = DataProtector;
+    const retrievedWallet = await Wallet.findOne({
+      phoneNumber
+    });
+    if (!retrievedWallet) {
+      return res.status(404).json(responses.error(404, 'Wallet doesn\'t exist'));
+    }
+    if (!retrievedWallet.isActivated) return res.status(401).json(responses.error(401, 'Your wallet is not yet activated'));
+    if (!compareData(securityAnswer, retrievedWallet.securityAnswer)) {
+      return res.status(401).json(responses.error(401, 'Security answer provided is incorrect, contact support'));
+    }
+    const updatedWallet = await Wallet.findOneAndUpdate({
+      phoneNumber
+    }, {
+      $set: {
+        passCode: hashData(newCode),
+        resetCode: true,
+        isLocked: false
+      }
+    }, {
+      new: true
+    });
+    WalletController.updateElastic(updatedWallet);
+    return res.status(200).json(responses.success(200, 'Passcode recovery successful'));
+  }
+
 }
