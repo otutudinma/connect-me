@@ -358,4 +358,46 @@ class WalletController {
     if (!checkCode) return false;
     return true;
   }
+
+
+  /**
+   *@description Reset user passcode
+   *@static
+   *@param  {Object} req - request
+   *@param  {Object} res - request
+   *@returns {object} - null
+   *@memberof walletController
+   */
+  static async walletCodeReset(req, res) {
+    const {
+      phoneNumber,
+      previousCode,
+      newCode
+    } = req.body;
+    const {
+      hashData,
+      compareData
+    } = DataProtector;
+    const retrievedWallet = await Wallet.findOne({
+      phoneNumber
+    });
+    if (!retrievedWallet) {
+      return res.status(404).json(responses.error(404, 'Wallet doesn\'t exist'));
+    }
+    if (!retrievedWallet.isActivated) return res.status(401).json(responses.error(401, 'Your wallet is not yet activated'));
+    if (!compareData(previousCode, retrievedWallet.passCode)) {
+      return res.status(401).json(responses.error(401, 'Previous passcode entered is incorrect'));
+    }
+    const updatedWallet = await Wallet.findOneAndUpdate({
+      phoneNumber
+    }, {
+      $set: {
+        passCode: hashData(newCode),
+      }
+    }, {
+      new: true
+    });
+    WalletController.updateElastic(updatedWallet);
+    return res.status(200).json(responses.success(200, 'Passcode reset successful'));
+  }
 }
