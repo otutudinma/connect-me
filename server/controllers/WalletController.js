@@ -293,5 +293,46 @@ class WalletController {
                 responses.error(500, 'Server error, failed to send money')
               );
             }
-          }          
+          }
+          
+          /**
+   *@description Debits and credits users
+   *@static
+   *@param  {Number} senderNumber - phone number of the sender
+   *@param  {Number} senderNewBalance - sender's new balance
+   *@param  {Number} receiverNumber - phone number of the receiver
+   *@param  {Number} receiverNewBalance - receiver's new balance
+   *@returns {object} - updated sender's and receiver's details
+   *@memberof walletController
+   */
+  static async moneyDeductions({
+    senderNumber,
+    senderNewBalance,
+    receiverNumber,
+    receiverNewBalance
+  }) {
+    try {
+      const updatedSender = await Wallet.findOneAndUpdate({
+        phoneNumber: senderNumber
+      }, {
+        totalAmount: senderNewBalance
+      }, {
+        new: true
+      });
+      const updatedReceiver = await Wallet.findOneAndUpdate({
+        phoneNumber: receiverNumber
+      }, {
+        totalAmount: receiverNewBalance
+      }, {
+        new: true
+      });
+
+      return {
+        updatedSender,
+        updatedReceiver
+      };
+    } catch (error) {
+      traceLogger(error);
+    }
+  }
 }
