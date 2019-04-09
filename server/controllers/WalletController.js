@@ -180,4 +180,40 @@ class WalletController {
           senderNumber,
           receiverNumber
         });
+        if (sender.phoneNumber && sender.friends.includes(receiver.phoneNumber)) {
+            const validatedSender = await elastic
+              .retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, sender.phoneNumber);
+            const validatedReceiver = await elastic
+              .retrieveOne(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, receiver.phoneNumber);
+    
+            if (!validatedSender.isActivated) return res.status(401).json(responses.error(401, 'Please activate your wallet to send money'));
+            if (validatedSender.isLocked === true) return res.status(401).json(responses.error(401, 'wallet is locked, please reset passcode'));
+    
+            if (parseFloat(amount, 10) === 0) {
+              return res.status(400).json(responses.error(400, 'Please you cannot send this amount'));
+            }
+    
+            if (parseFloat(amount, 10) > validatedSender.totalAmount) {
+              return res.status(400).json(responses.error(400, 'Insufficient funds, please fund your account'));
+            }
+            const senderNewBalance = validatedSender.totalAmount - parseFloat(amount, 10);
+            const receiverNewBalance = validatedReceiver.totalAmount + parseFloat(amount, 10);
+            validatedSender.totalAmount = parseFloat(senderNewBalance, 10);
+            validatedReceiver.totalAmount = parseFloat(receiverNewBalance, 10);
+    
+            await elastic.updateData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, senderNumber.slice(1), validatedSender,
+              esResponse => esResponse);
+            await elastic.updateData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, receiverNumber.slice(1), validatedReceiver,
+              esResponse => esResponse);
+            const {
+              updatedSender,
+              updatedReceiver
+            } = await WalletController
+              .moneyDeductions({
+                senderNumber,
+                senderNewBalance,
+                receiverNumber,
+                receiverNewBalance
+              });
+    
 }
