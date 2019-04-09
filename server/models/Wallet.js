@@ -24,17 +24,10 @@ const walletSchema = new Schema({
     type: Number,
     default: 0.00
   },
-  codeInputCount: {
-    type: Number,
-    default: 0
-  },
+  
   isLocked: {
     type: Boolean,
     default: false
-  },
-  codeTimer: {
-    type: String,
-    default: '0'
   },
   securityQuestion: {
     type: String,
