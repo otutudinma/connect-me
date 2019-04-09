@@ -215,5 +215,30 @@ class WalletController {
                 receiverNumber,
                 receiverNewBalance
               });
-    
+              if (!updatedSender || !updatedReceiver) {
+                const reverseSenderMoney = validatedSender.totalAmount + parseFloat(amount, 10);
+                const reverseReceiverMoney = validatedReceiver.totalAmount - parseFloat(amount, 10);
+                validatedSender.totalAmount = parseFloat(reverseSenderMoney, 10);
+                validatedReceiver.totalAmount = parseFloat(reverseReceiverMoney, 10);
+      
+                await elastic.updateData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, senderNumber.slice(1), validatedSender,
+                  esResponse => esResponse);
+                await elastic.updateData(`${INDEX_NAME}-${TYPE_NAME}`, TYPE_NAME, receiverNumber.slice(1), validatedReceiver,
+                  esResponse => esResponse);
+                return res.status(500).json(responses.error(500, 'Failed to transfer money!'));
+              }
+              const beneficiaryUsername = await User.findOne({ phoneNumber: receiverNumber });
+              const senderName = await User.findOne({ phoneNumber: senderNumber });
+              const {
+                senderTransaction,
+                receiverTransaction
+              } = await TransactionController
+                .createTransaction({
+                  phoneNumber: senderNumber,
+                  receiverNumber,
+                  beneficiary: beneficiaryUsername.username,
+                  amount,
+                  status: 'successful'
+                });
+          
 }
