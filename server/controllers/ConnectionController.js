@@ -353,4 +353,39 @@ class ConnectionController {
       );
     }
   }
+
+  /**
+   *@description Gets all user's connections
+   *@static
+   *@param  {Object} initiator - initiator
+   *@param  {Object} friend - friend
+   *@returns {object} - a user's connections
+   *@memberof connectionController
+   */
+  static async handleConnectionRemoval(initiator, friend) {
+    const updatedSender = await User.findOneAndUpdate({
+      phoneNumber: initiator
+    }, {
+      $pull: {
+        friends: friend
+      }
+    }, {
+      new: true
+    });
+    const updatedReceiver = await User.findOneAndUpdate({
+      phoneNumber: friend
+    }, {
+      $pull: {
+        friends: initiator
+      }
+    }, {
+      new: true
+    });
+    SettingController.handleQueue(updatedSender);
+    SettingController.handleQueue(updatedReceiver);
+    return {
+      updatedSender,
+      updatedReceiver
+    };
+  }
 }
