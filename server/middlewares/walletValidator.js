@@ -125,6 +125,27 @@ const walletValidator = {
 
     validationErrorHandler(req, res, next);
   },
+
+  transferVerification: (req, res, next) => {
+    req.check('bankCode', 'bank code should be 3 digits').isLength({
+      min: 3,
+      max: 3
+    });
+    req.check('phoneNumber', 'phone number should be number').isInt();
+    req.check('phoneNumber', 'phone number should be 14 digits').isLength({
+      min: 14,
+      max: 14
+    });
+    req.check('accountNumber', 'account number should be a number').isInt();
+    req.check('accountNumber', 'account number should be 10 digits').isLength({
+      min: 10,
+      max: 10
+    });
+    req.check('amount', 'amount should be a digit').isInt();
+    req.check('beneficiaryName', 'beneficiary name is required').notEmpty();
+
+    validationErrorHandler(req, res, next);
+  }
 };
 
 export default walletValidator;
