@@ -389,3 +389,5 @@ class ConnectionController {
     };
   }
 }
+
+export default ConnectionController;
